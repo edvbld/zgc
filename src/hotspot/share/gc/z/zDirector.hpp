@@ -44,7 +44,7 @@ protected:
 public:
   ZDirector();
 
-  static void evaluate_rules();
+  static void notify();
 };
 
 #endif // SHARE_GC_Z_ZDIRECTOR_HPP

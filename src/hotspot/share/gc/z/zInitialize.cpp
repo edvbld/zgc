@@ -53,7 +53,16 @@ ZInitialize::ZInitialize(ZBarrierSet* barrier_set) {
   ZThreadLocalAllocBuffer::initialize();
   ZTracer::initialize();
   ZLargePages::initialize();
-  ZHeuristics::set_medium_page_size();
+
+  const ZPageConfiguration conf = ZHeuristics::get()->initial_configuration().page_configuration();
+  if (conf.use_medium_pages()) {
+    ZPageSizeMedium             = conf.medium_page_size();
+    ZPageSizeMediumShift        = conf.medium_page_size_shift();
+    ZObjectSizeLimitMedium      = conf.medium_object_size_limit();
+    ZObjectAlignmentMedium      = conf.medium_object_alignment();
+    ZObjectAlignmentMediumShift = conf.medium_object_alignment_shift();
+  }
+
   ZBarrierSet::set_barrier_set(barrier_set);
   ZJNICritical::initialize();
   ZDriver::initialize();

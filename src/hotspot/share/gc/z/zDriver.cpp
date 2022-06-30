@@ -216,7 +216,7 @@ void ZDriverMinor::run_service() {
     handle_alloc_stalls();
 
     // Good point to consider back-to-back GC
-    ZDirector::evaluate_rules();
+    ZDirector::notify();
   }
 }
 

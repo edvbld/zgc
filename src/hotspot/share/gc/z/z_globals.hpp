@@ -101,7 +101,10 @@
           "Verify marking stacks")                                          \
                                                                             \
   product(bool, ZVerifyForwarding, false, DIAGNOSTIC,                       \
-          "Verify forwarding tables")
+          "Verify forwarding tables")                                       \
+                                                                            \
+  develop(ccstr, ZHeuristics, "rules",                                      \
+          "Heuristics to apply")
 
 // end of GC_Z_FLAGS
 

@@ -39,6 +39,10 @@ void ZArguments::initialize_alignments() {
 
 void ZArguments::initialize() {
   GCArguments::initialize();
+  if (!ZHeuristics::initialize(ZHeuristics)) {
+    vm_exit_during_initialization("Could not find heuristics with name %s", ZHeuristics);
+  }
+  const ZInitialConfiguration initial_conf = ZHeuristics::get()->initial_configuration();
 
   // Check mark stack size
   const size_t mark_stack_space_limit = ZAddressSpaceLimit::mark_stack();
@@ -56,7 +60,7 @@ void ZArguments::initialize() {
 
   // Select number of parallel threads
   if (FLAG_IS_DEFAULT(ParallelGCThreads)) {
-    FLAG_SET_DEFAULT(ParallelGCThreads, ZHeuristics::nparallel_workers());
+    FLAG_SET_DEFAULT(ParallelGCThreads, initial_conf.num_parallel_workers());
   }
 
   if (ParallelGCThreads == 0) {
@@ -65,7 +69,7 @@ void ZArguments::initialize() {
 
   // Select number of concurrent threads
   if (FLAG_IS_DEFAULT(ConcGCThreads)) {
-    FLAG_SET_DEFAULT(ConcGCThreads, ZHeuristics::nconcurrent_workers());
+    FLAG_SET_DEFAULT(ConcGCThreads, initial_conf.num_concurrent_workers());
   }
 
   if (ConcGCThreads == 0) {
@@ -73,15 +77,7 @@ void ZArguments::initialize() {
   }
 
   if (FLAG_IS_DEFAULT(MaxTenuringThreshold)) {
-    uint tenuring_threshold;
-    for (tenuring_threshold = 0; tenuring_threshold < MaxTenuringThreshold; ++tenuring_threshold) {
-      // Reduce the number of object ages, if the resulting garbage is too high
-      size_t medium_page_overhead = ZPageSizeMedium * tenuring_threshold;
-      size_t small_page_overhead = ZPageSizeSmall * ConcGCThreads * tenuring_threshold;
-      if (small_page_overhead + medium_page_overhead >= ZHeuristics::significant_heap_overhead()) {
-        break;
-      }
-    }
+    uint tenuring_threshold = initial_conf.tenuring_threshold();
     FLAG_SET_DEFAULT(MaxTenuringThreshold, tenuring_threshold);
     if (tenuring_threshold == 0 && FLAG_IS_DEFAULT(AlwaysTenure)) {
       // Some flag constraint function says AlwaysTenure must be true iff MaxTenuringThreshold == 0
