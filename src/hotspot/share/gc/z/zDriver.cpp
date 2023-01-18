@@ -37,8 +37,8 @@
 #include "gc/z/zServiceability.hpp"
 #include "gc/z/zStat.hpp"
 
-static const ZStatPhaseCollection ZPhaseCollectionMinor("Minor Collection", true /* minor */);
-static const ZStatPhaseCollection ZPhaseCollectionMajor("Major Collection", false /* minor */);
+static const ZStatPhaseCollectionMinor ZPhaseCollectionMinor;
+static const ZStatPhaseCollectionMajor ZPhaseCollectionMajor;
 
 template <typename DriverT>
 class ZGCCauseSetter : public GCCauseSetter {
@@ -150,7 +150,7 @@ void ZDriverMinor::collect(const ZDriverRequest& request) {
   }
 }
 
-GCTracer* ZDriverMinor::jfr_tracer() {
+YoungGCTracer* ZDriverMinor::jfr_tracer() {
   return &_jfr_tracer;
 }
 

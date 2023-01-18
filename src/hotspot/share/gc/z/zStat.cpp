@@ -626,44 +626,56 @@ const char* ZStatPhase::name() const {
   return _sampler.name();
 }
 
-ZStatPhaseCollection::ZStatPhaseCollection(const char* name, bool minor) :
-    ZStatPhase(minor ? "Minor Collection" : "Major Collection", name),
-    _minor(minor) {}
+ZStatPhaseCollectionMinor::ZStatPhaseCollectionMinor()
+    ZStatPhase("Minor Collection") {}
 
-GCTracer* ZStatPhaseCollection::jfr_tracer() const {
-  return _minor
-      ? ZDriver::minor()->jfr_tracer()
-      : ZDriver::major()->jfr_tracer();
+YoungGCTracer* ZStatPhaseCollectionMinor::jfr_tracer() const {
+  return ZDriver::minor()->jfr_tracer()
 }
 
-void ZStatPhaseCollection::set_used_at_start(size_t used) const {
-  return _minor
-      ? ZDriver::minor()->set_used_at_start(used)
-      : ZDriver::major()->set_used_at_start(used);
+void ZStatPhaseCollectionMinor::set_used_at_start(size_t used) const {
+    ZDriver::minor()->set_used_at_start(used);
 }
 
-size_t ZStatPhaseCollection::used_at_start() const {
-  return _minor
-      ? ZDriver::minor()->used_at_start()
-      : ZDriver::major()->used_at_start();
+size_t ZStatPhaseCollectionMinor::used_at_start() const {
+    ZDriver::minor()->used_at_start()
 }
 
-void ZStatPhaseCollection::register_start(ConcurrentGCTimer* timer, const Ticks& start) const {
-  const GCCause::Cause cause = _minor ? ZDriver::minor()->gc_cause() : ZDriver::major()->gc_cause();
+ZStatPhaseCollectionMajor::ZStatPhaseCollectionMajor()
+    ZStatPhase("Major Collection") {}
 
+GCTracer* ZStatPhaseCollectionMajor::jfr_tracer() const {
+  return ZDriver::major()->jfr_tracer()
+}
+
+void ZStatPhaseCollectionMajor::set_used_at_start(size_t used) const {
+    ZDriver::major()->set_used_at_start(used);
+}
+
+size_t ZStatPhaseCollectionMajor::used_at_start() const {
+    ZDriver::major()->used_at_start()
+}
+
+static void register_gc_start(GCTracer* tracer, GCCause::Cause cause, ConcurrentGCTimer* timer, const Ticks& start) const {
   timer->register_gc_start(start);
 
-  jfr_tracer()->report_gc_start(cause, start);
-  ZCollectedHeap::heap()->trace_heap_before_gc(jfr_tracer());
+  tracer->report_gc_start(cause, start);
+  ZCollectedHeap::heap()->trace_heap_before_gc(tracer);
 
   set_used_at_start(ZHeap::heap()->used());
 
   log_info(gc)("%s (%s)", name(), GCCause::to_string(cause));
 }
 
-void ZStatPhaseCollection::register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const {
-  const GCCause::Cause cause = _minor ? ZDriver::minor()->gc_cause() : ZDriver::major()->gc_cause();
+void ZStatPhaseCollectionMinor::register_start(ConcurrentGCTimer* timer, const Ticks& start) const {
+  register_gc_start(jfr_tracer(), ZDriver::minor()->gc_cause(), timer, start);
+}
 
+void ZStatPhaseCollectionMajor::register_start(ConcurrentGCTimer* timer, const Ticks& start) const {
+  register_gc_start(jfr_tracer(), ZDriver::major()->gc_cause(), timer, start);
+}
+
+static void register_gc_end(GCTracer* tracer, GCCause::Cause cause, ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const {
   if (ZAbort::should_abort()) {
     log_info(gc)("%s (%s) Aborted", name(), GCCause::to_string(cause));
     return;
@@ -671,8 +683,8 @@ void ZStatPhaseCollection::register_end(ConcurrentGCTimer* timer, const Ticks& s
 
   timer->register_gc_end(end);
 
-  jfr_tracer()->report_gc_end(end, timer->time_partitions());
-  ZCollectedHeap::heap()->trace_heap_after_gc(jfr_tracer());
+  tracer->report_gc_end(end, timer->time_partitions());
+  ZCollectedHeap::heap()->trace_heap_after_gc(tracer);
 
   const Tickspan duration = end - start;
   ZStatSample(_sampler, duration.value());
@@ -685,6 +697,15 @@ void ZStatPhaseCollection::register_end(ConcurrentGCTimer* timer, const Ticks& s
                ZSIZE_ARGS(used_at_start()),
                ZSIZE_ARGS(used_at_end),
                duration.seconds());
+}
+
+void ZStatPhaseCollectionMinor::register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const {
+  jfr_tracer()->report_tenuring_threshold(10); // TODO
+  register_gc_end(jfr_tracer(), ZDriver::minor()->gc_cause(), timer, start, end);
+}
+
+void ZStatPhaseCollectionMajor::register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const {
+  register_gc_start(jfr_tracer(), ZDriver::major()->gc_cause(), timer, start, end);
 }
 
 ZStatPhaseGeneration::ZStatPhaseGeneration(const char* name, ZGenerationId id) :

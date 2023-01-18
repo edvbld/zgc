@@ -84,7 +84,7 @@ public:
 
   void collect(const ZDriverRequest& request);
 
-  GCTracer* jfr_tracer();
+  YoungGCTracer* jfr_tracer();
 
   void set_used_at_start(size_t used);
   size_t used_at_start() const;

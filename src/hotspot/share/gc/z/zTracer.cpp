@@ -87,7 +87,7 @@ static void register_jfr_type_serializers() {
 #endif // INCLUDE_JFR
 
 ZMinorTracer::ZMinorTracer() :
-    YoungGCTracer(ZMinor, false /* uses_tenuring_threshold */) {
+    YoungGCTracer(ZMinor) {
 }
 
 ZMajorTracer::ZMajorTracer() :

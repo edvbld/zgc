@@ -224,17 +224,29 @@ public:
   virtual void register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const = 0;
 };
 
-class ZStatPhaseCollection : public ZStatPhase {
+class ZStatPhaseCollectionMinor : public ZStatPhase {
 private:
-  const bool _minor;
+  YoungGCTracer* jfr_tracer() const;
 
+  void set_used_at_start(size_t used) const;
+  size_t used_at_start() const;
+
+public:
+  ZStatPhaseCollectionMinor();
+
+  virtual void register_start(ConcurrentGCTimer* timer, const Ticks& start) const;
+  virtual void register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const;
+};
+
+class ZStatPhaseCollectionMajor : public ZStatPhase {
+private:
   GCTracer* jfr_tracer() const;
 
   void set_used_at_start(size_t used) const;
   size_t used_at_start() const;
 
 public:
-  ZStatPhaseCollection(const char* name, bool minor);
+  ZStatPhaseCollectionMajor();
 
   virtual void register_start(ConcurrentGCTimer* timer, const Ticks& start) const;
   virtual void register_end(ConcurrentGCTimer* timer, const Ticks& start, const Ticks& end) const;
